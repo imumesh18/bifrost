@@ -58,6 +58,10 @@ test.ci: ## Run ci test with short coverage
 generate-ifsc-data: ## Generate IFSC data
 	@go run tools/finly/main.go
 
+.PHONY: generate-atlas-data
+generate-atlas-data: ## Generate GeoLocation data from geonames
+	@go run tools/atlas/main.go
+
 .PHONY: help
 help: ## Shows help.
 	@echo
