@@ -16,10 +16,9 @@ package atlas
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/imumesh18/bifrost/atlas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,45 +27,15 @@ func TestGetGeoLocationByPostalCode(t *testing.T) {
 	ctx := context.Background()
 	testCases := []struct {
 		expectedError  error
-		expectedOutput *GeoLocation
-		mockDB         func(mock sqlmock.Sqlmock)
+		expectedOutput *atlas.GeoLocation
 		name           string
 		postalCode     string
 	}{
 		{
-			name:       "valid postal code",
-			postalCode: "400001",
-			mockDB: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(getGeoLocationByPostalCodeQuery).WithArgs("400001").WillReturnRows(sqlmock.NewRows([]string{
-					"country_code",
-					"postal_code",
-					"place_name",
-					"admin_name_1",
-					"admin_code_1",
-					"admin_name_2",
-					"admin_code_2",
-					"admin_name_3",
-					"admin_code_3",
-					"latitude",
-					"longitude",
-					"accuracy",
-				}).AddRow(
-					"IN",
-					"560095",
-					"Koramangala VI Bk",
-					"Karnataka",
-					"19",
-					"Bengaluru",
-					"583",
-					"Bangalore South",
-					"",
-					13.1077,
-					77.581,
-					1,
-				))
-			},
+			name:          "valid postal code",
+			postalCode:    "560095",
 			expectedError: error(nil),
-			expectedOutput: &GeoLocation{
+			expectedOutput: &atlas.GeoLocation{
 				CountryCode: "IN",
 				PostalCode:  "560095",
 				PlaceName:   "Koramangala VI Bk",
@@ -82,34 +51,26 @@ func TestGetGeoLocationByPostalCode(t *testing.T) {
 			},
 		},
 		{
-			name:       "invalid postal code",
-			postalCode: "999999",
-			mockDB: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(getGeoLocationByPostalCodeQuery).WithArgs("999999").WillReturnError(sql.ErrNoRows)
-			},
-			expectedError: ErrGeoLocationNotFound,
+			name:          "invalid postal code",
+			postalCode:    "999999",
+			expectedError: atlas.ErrGeoLocationNotFound,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			db, mock, err := sqlmock.New()
-			require.NoError(t, err)
-			atlas := Atlas{
-				db: db,
+			atl, err := atlas.New()
+			if err != nil {
+				require.NoError(t, err)
 			}
-			tc.mockDB(mock)
 
-			geoLocation, err := atlas.GetGeoLocationByPostalCode(ctx, tc.postalCode)
+			geoLocation, err := atl.GetGeoLocationByPostalCode(ctx, tc.postalCode)
 			if tc.expectedError != nil {
 				assert.EqualError(t, err, tc.expectedError.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.EqualValues(t, tc.expectedOutput, geoLocation)
 			}
-
-			err = mock.ExpectationsWereMet()
-			assert.NoError(t, err)
 		})
 	}
 }
