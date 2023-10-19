@@ -19,7 +19,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/imumesh18/bifrost/finly"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,8 +28,7 @@ func TestGetBankByIFSC(t *testing.T) {
 	ctx := context.Background()
 	testCases := []struct {
 		expectedError  error
-		expectedOutput *Bank
-		mockDB         func(mock sqlmock.Sqlmock)
+		expectedOutput *finly.Bank
 		name           string
 		ifsc           string
 	}{
@@ -37,46 +36,7 @@ func TestGetBankByIFSC(t *testing.T) {
 			name:          "valid ifsc",
 			ifsc:          "ABHY0065001",
 			expectedError: error(nil),
-			mockDB: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(getBankByIFSCQuery).WithArgs("ABHY0065001").WillReturnRows(sqlmock.NewRows([]string{
-					"name",
-					"code",
-					"ifsc",
-					"branch",
-					"center",
-					"district",
-					"state",
-					"address",
-					"contact",
-					"imps",
-					"rtgs",
-					"city",
-					"iso3166",
-					"neft",
-					"micr",
-					"upi",
-					"swift",
-				}).AddRow(
-					"Abhyudaya Co-operative Bank",
-					"ABHY",
-					"ABHY0065001",
-					"Abhyudaya Co-operative Bank IMPS",
-					"MUMBAI",
-					"MUMBAI",
-					"MAHARASHTRA",
-					"ABHYUDAYA BUILDING, KAMAL NATH MARG,NEHRU NAGAR,KURLA-EAST,MUMBAI-400024",
-					"+919653261383",
-					"1",
-					"1",
-					"MUMBAI",
-					"IN-MH",
-					"1",
-					"400065001",
-					"1",
-					"",
-				))
-			},
-			expectedOutput: &Bank{
+			expectedOutput: &finly.Bank{
 				Name:     "Abhyudaya Co-operative Bank",
 				State:    "MAHARASHTRA",
 				City:     "MUMBAI",
@@ -97,24 +57,17 @@ func TestGetBankByIFSC(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid ifsc",
-			ifsc: "ABHY0069999",
-			mockDB: func(mock sqlmock.Sqlmock) {
-				mock.ExpectQuery(getBankByIFSCQuery).WithArgs("ABHY0069999").WillReturnError(sql.ErrNoRows)
-			},
-			expectedError: ErrBankNotFound,
+			name:          "invalid ifsc",
+			ifsc:          "ABHY0069999",
+			expectedError: sql.ErrNoRows,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			db, mock, err := sqlmock.New()
-			require.NoError(t, err)
-
-			tc.mockDB(mock)
-
-			finly := &Finly{
-				store: db,
+			finly, err := finly.New()
+			if err != nil {
+				require.NoError(t, err)
 			}
 
 			bank, err := finly.GetBankByIFSC(ctx, tc.ifsc)
@@ -124,9 +77,6 @@ func TestGetBankByIFSC(t *testing.T) {
 				assert.NoError(t, err)
 				assert.EqualValues(t, tc.expectedOutput, bank)
 			}
-
-			err = mock.ExpectationsWereMet()
-			assert.NoError(t, err)
 		})
 	}
 }

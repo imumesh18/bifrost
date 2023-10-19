@@ -89,9 +89,9 @@ func New() (*Finly, error) {
 
 // GetBankByIFSC returns a Bank instance by its IFSC code.
 // It returns an error if it fails to query the database.
-func (b *Finly) GetBankByIFSC(_ context.Context, ifsc string) (*Bank, error) {
+func (b *Finly) GetBankByIFSC(ctx context.Context, ifsc string) (*Bank, error) {
 	var i Bank
-	err := b.store.QueryRow(getBankByIFSCQuery, ifsc).Scan(
+	err := b.store.QueryRowContext(ctx, getBankByIFSCQuery, ifsc).Scan(
 		&i.Name,
 		&i.Code,
 		&i.Ifsc,
