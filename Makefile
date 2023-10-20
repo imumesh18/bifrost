@@ -48,11 +48,13 @@ clean: ## Clean the builds
 
 .PHONY: test
 test: ## Run test with short coverage
-	@go test -v -race -covermode=atomic -coverprofile=./out/coverage.out -coverpkg=$(ALL_PACKAGES) $(ALL_PACKAGES)
+	@mkdir -p out
+	go test -v -race -covermode=atomic -coverprofile=./out/coverage.out -coverpkg=$(ALL_PACKAGES) $(ALL_PACKAGES)
 
 .PHONY: test.ci
 test.ci: ## Run ci test with short coverage
-	@go test -v -race -covermode=atomic -coverprofile=./out/coverage.out -coverpkg=$(ALL_PACKAGES) $(ALL_PACKAGES)
+	@mkdir -p out
+	go test -v -race -covermode=atomic -coverprofile=./out/coverage.out -coverpkg=$(ALL_PACKAGES) $(ALL_PACKAGES)
 
 .PHONY: generate-ifsc-data
 generate-ifsc-data: ## Generate IFSC data

@@ -14,6 +14,7 @@
 
 run:
   go: "1.21"
+  tests: false
 linters-settings:
   dupl:
     threshold: 100

@@ -19,6 +19,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"os"
+	"path/filepath"
 
 	_ "github.com/libsql/libsql-client-go/libsql" // Import the libsql driver
 	_ "modernc.org/sqlite"                        // Import the sqlite driver
@@ -79,12 +81,48 @@ type Atlas struct {
 // New creates a new instance of Atlas and initializes the database connection.
 // It returns a pointer to Atlas and an error if the connection fails.
 func New() (*Atlas, error) {
-	db, err := sql.Open("libsql", "file:./data/atlas.db")
+	db, err := sql.Open("libsql", "file:"+getDBPath()+"?mode=ro")
 	if err != nil {
 		return nil, err
 	}
 
 	return &Atlas{db: db}, nil
+}
+
+func getDBPath() string {
+	// Get the absolute path to the current working directory
+	wd, err := findProjectRoot()
+	if err != nil {
+		panic(err)
+	}
+
+	// Join the atlas directory path with the database file name
+	return filepath.Join(wd, "atlas", "data", "atlas.db")
+}
+
+func findProjectRoot() (string, error) {
+	// Start with the current working directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	// Traverse upwards to find a marker file or directory that indicates the project root
+	for {
+		// Check if a specific file or directory exists in the current directory
+		// that indicates the project root (e.g., a marker file like 'go.mod')
+		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
+			return currentDir, nil
+		}
+
+		// If not found, move up one directory level
+		parentDir := filepath.Dir(currentDir)
+		// If we're already at the root directory, stop searching
+		if parentDir == currentDir {
+			return "", nil
+		}
+		currentDir = parentDir
+	}
 }
 
 // GetGeoLocationByPostalCode retrieves a GeoLocation struct from the database by postal code.

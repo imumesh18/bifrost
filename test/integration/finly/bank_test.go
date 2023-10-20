@@ -16,7 +16,6 @@ package finly
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 
 	"github.com/imumesh18/bifrost/finly"
@@ -59,7 +58,7 @@ func TestGetBankByIFSC(t *testing.T) {
 		{
 			name:          "invalid ifsc",
 			ifsc:          "ABHY0069999",
-			expectedError: sql.ErrNoRows,
+			expectedError: finly.ErrBankNotFound,
 		},
 	}
 

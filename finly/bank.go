@@ -19,6 +19,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"os"
+	"path/filepath"
 
 	_ "github.com/libsql/libsql-client-go/libsql" // Import the libsql driver
 	_ "modernc.org/sqlite"                        // Import the sqlite driver
@@ -79,12 +81,48 @@ type Finly struct {
 // New returns a new finly instance that interacts with the database.
 // It returns an error if it fails to open the database.
 func New() (*Finly, error) {
-	db, err := sql.Open("libsql", "file:./data/finly.db")
+	db, err := sql.Open("libsql", "file://"+getDBPath()+"?mode=ro")
 	if err != nil {
 		return nil, err
 	}
 
 	return &Finly{store: db}, nil
+}
+
+func findProjectRoot() (string, error) {
+	// Start with the current working directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	// Traverse upwards to find a marker file or directory that indicates the project root
+	for {
+		// Check if a specific file or directory exists in the current directory
+		// that indicates the project root (e.g., a marker file like 'go.mod')
+		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
+			return currentDir, nil
+		}
+
+		// If not found, move up one directory level
+		parentDir := filepath.Dir(currentDir)
+		// If we're already at the root directory, stop searching
+		if parentDir == currentDir {
+			return "", nil
+		}
+		currentDir = parentDir
+	}
+}
+
+func getDBPath() string {
+	// Get the absolute path to the current working directory
+	wd, err := findProjectRoot()
+	if err != nil {
+		panic(err)
+	}
+
+	// Join the current working directory path with the path to the database file relative to the finly package
+	return filepath.Join(wd, "finly", "data", "finly.db")
 }
 
 // GetBankByIFSC returns a Bank instance by its IFSC code.
